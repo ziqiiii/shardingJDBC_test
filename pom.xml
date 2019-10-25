@@ -49,17 +49,20 @@
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
-		<!-- druid -->
+
+		<!-- https://mvnrepository.com/artifact/com.alibaba/druid -->
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>druid</artifactId>
-			<version>1.1.9</version>
+			<version>1.1.20</version>
 		</dependency>
+
 		<!-- sharding-jdbc -->
+		<!-- https://mvnrepository.com/artifact/org.apache.shardingsphere/sharding-jdbc-core -->
 		<dependency>
-			<groupId>com.dangdang</groupId>
+			<groupId>org.apache.shardingsphere</groupId>
 			<artifactId>sharding-jdbc-core</artifactId>
-			<version>1.5.4</version>
+			<version>4.0.0-RC2</version>
 		</dependency>
 
 		<dependency>

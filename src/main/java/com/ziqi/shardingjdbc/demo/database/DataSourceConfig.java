@@ -1,23 +1,19 @@
 package com.ziqi.shardingjdbc.demo.database;
 
-import com.dangdang.ddframe.rdb.sharding.api.ShardingDataSourceFactory;
-import com.dangdang.ddframe.rdb.sharding.api.rule.DataSourceRule;
-import com.dangdang.ddframe.rdb.sharding.api.rule.ShardingRule;
-import com.dangdang.ddframe.rdb.sharding.api.rule.TableRule;
-import com.dangdang.ddframe.rdb.sharding.api.strategy.table.TableShardingStrategy;
-import com.ziqi.shardingjdbc.demo.config.TableShardingAlgorithm;
+import com.ziqi.shardingjdbc.demo.config.StandTablePreciseAlgorithm;
+import com.ziqi.shardingjdbc.demo.config.StandTableRangeAlgoeithm;
+import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
+import org.apache.shardingsphere.api.config.sharding.TableRuleConfiguration;
+import org.apache.shardingsphere.api.config.sharding.strategy.StandardShardingStrategyConfiguration;
+import org.apache.shardingsphere.shardingjdbc.api.ShardingDataSourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * create by ziqi.zhang on 2019/10/12
@@ -28,54 +24,63 @@ public class DataSourceConfig {
     @Autowired
     private Database0Config database0Config;
 
+    @Autowired
+    private StandTablePreciseAlgorithm standTablePreciseAlgorithm;
 
     @Autowired
-    private TableShardingAlgorithm tableShardingAlgorithm;
+    private StandTableRangeAlgoeithm standTableRangeAlgoeithm;
 
-    @Value("${ziqi.sharding.tables.logic-table-name}")
+    @Value("${spring.shardingsphere.sharding.tables.goods.logicTable}")
     private String logicTable;
 
-    @Value("${ziqi.sharding.tables.sharding-column}")
+    @Value("${spring.shardingsphere.sharding.tables.goods.tableStrategy.standard.shardingColumn}")
     private String shardingColumn;
 
-    @Value("#{'${ziqi.sharding.tables.actual-table-name.list}'.split(',')}")
-    private List<String> actualTables;
+//    @Value("#{'${spring.shardingsphere.sharding.tables.actual-table-name.list}'.split(',')}")
+//    private List<String> actualTables;
+
+
+    @Value("${spring.shardingsphere.sharding.tables.goods.actualDataNodes}")
+    private String goodsDetailActualDataNodes;
 
     @Bean
     public DataSource getDataSource() throws SQLException {
         return buildDataSource();
     }
 
-    private DataSource buildDataSource() throws SQLException {
-        //分库设置
+    //分库设置
+    private Map<String, DataSource> getDataSourceMap() {
         Map<String, DataSource> dataSourceMap = new HashMap<>(2);
+//        DruidDataSource dataSource1 = new DruidDataSource();
+//        dataSource1.setDriverClassName("com.mysql.cj.jdbc.Driver");
+//        dataSource1.setUrl("jdbc:mysql://49.234.234.31:3306/shard_order_0");
+//        dataSource1.setUsername("root");
+//        dataSource1.setPassword("root");
+//        dataSourceMap.put("shard_order_0", dataSource1);
+
         //添加两个数据库database0和database1
         dataSourceMap.put(database0Config.getDatabaseName(), database0Config.createDataSource());
 //        dataSourceMap.put(database1Config.getDatabaseName(), database1Config.createDataSource());
-        //设置默认数据库
-        DataSourceRule dataSourceRule = new DataSourceRule(dataSourceMap, database0Config.getDatabaseName());
 
+        return dataSourceMap;
+    }
 
-        //分表设置，大致思想就是将查询虚拟表Goods根据一定规则映射到真实表中去
-        //Goods的分表规则
-        TableRule orderTableRule = TableRule.builder(logicTable)
-                .actualTables(actualTables)
-//                .actualTables(Arrays.asList("goods_0", "goods_1"))
-                .dataSourceRule(dataSourceRule)
-                .build();
+    private TableRuleConfiguration getTableRuleConfiguration() {
+        TableRuleConfiguration tableRuleConfiguration = new TableRuleConfiguration(logicTable, goodsDetailActualDataNodes);
+        tableRuleConfiguration.setTableShardingStrategyConfig(new StandardShardingStrategyConfiguration(shardingColumn,
+                standTablePreciseAlgorithm, standTableRangeAlgoeithm));
+        return tableRuleConfiguration;
+    }
 
+    private DataSource buildDataSource() throws SQLException {
+        ShardingRuleConfiguration shardingRuleConfig = new ShardingRuleConfiguration();
+        shardingRuleConfig.getBindingTableGroups().add(logicTable);
+        //配置goods表规则
+        shardingRuleConfig.getTableRuleConfigs().add(getTableRuleConfiguration());
 
-        //分库分表策略
-        ShardingRule shardingRule = ShardingRule.builder()
-                .dataSourceRule(dataSourceRule)
-                .tableRules(Arrays.asList(orderTableRule))
-//                .databaseShardingStrategy(new DatabaseShardingStrategy("goods_id", databaseShardingAlgorithm))
-//                .tableShardingStrategy(new TableShardingStrategy("goods_type", tableShardingAlgorithm)).build();
-                .tableShardingStrategy(new TableShardingStrategy(shardingColumn, tableShardingAlgorithm)).build();
+        shardingRuleConfig.setDefaultDataSourceName("database1");
+        return ShardingDataSourceFactory.createDataSource(getDataSourceMap(), shardingRuleConfig, new Properties());
 
-
-        DataSource dataSource = ShardingDataSourceFactory.createDataSource(shardingRule);
-        return dataSource;
     }
 
 }

@@ -11,7 +11,7 @@ import javax.sql.DataSource;
  * create by ziqi.zhang on 2019/10/12
  */
 @Data
-@ConfigurationProperties(prefix = "database0")
+@ConfigurationProperties(prefix = "spring.shardingsphere.datasource.database1")
 @Component
 public class Database0Config {
     private String url;

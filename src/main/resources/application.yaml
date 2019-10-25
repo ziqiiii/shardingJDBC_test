@@ -1,0 +1,27 @@
+
+#配置
+spring:
+  jpa:
+    database: mysql
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+
+  shardingsphere:
+    datasource:
+      database1:
+        url: jdbc:mysql://localhost:3306/database1?zeroDateTimeBehavior=convertToNull&useUnicode=true&characterEncoding=utf-8
+        username: root
+        password:
+        driver-class-name: com.mysql.jdbc.Driver
+        databaseName: database1
+    sharding:
+      tables:
+        goods:
+          actualDataNodes: database1.goods_$->{0..1}
+          logicTable: goods
+          tableStrategy:
+            standard:
+              preciseAlgorithmClassName: com.ziqi.shardingjdbc.demo.config.StandTablePreciseAlgorithm
+              rangeAlgorithmClassName: com.ziqi.shardingjdbc.demo.config.StandTableRangeAlgoeithm
+              shardingColumn: goods_id
